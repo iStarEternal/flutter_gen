@@ -118,27 +118,34 @@ ${isPackage ? "\n  static const String package = '$packageName';" : ''}${omitSvg
 
   static const vectorCompileTransformer = 'vector_graphics_compiler';
 
-  /// Renders a user-supplied template for `assets.svg_ext.gen.dart`.
+  /// Renders a user-supplied SVG extension template.
   ///
   /// Placeholders:
   /// - `{{package_name}}`
   /// - `{{assets_gen_import}}` — e.g. `import 'assets.gen.dart';`
+  /// - `{{on_type}}` — extension target type (`SvgGenImage` / path class)
+  /// - `{{extension_name}}` — extension name (default `[onType]X`)
   /// - `{{package_param}}` — package parameter declaration (may be multi-line)
   /// - `{{package_arg_default}}` — ` = SvgGenImage.package` or empty
   String renderExtensionTemplate(
     String template, {
     required String assetsGenImport,
+    String onType = 'SvgGenImage',
+    String? extensionName,
   }) {
-    // Extension methods cannot unqualified-reference statics of the on-type.
+    // Static `package` lives on SvgGenImage; subclasses do not inherit statics.
     final packageArgDefault =
         isPackage ? ' = SvgGenImage.package' : '';
     final packageParam = isPackage
         ? '''$deprecationMessagePackage
     String? package$packageArgDefault,'''
         : 'String? package,';
+    final resolvedExtensionName = extensionName ?? '${onType}X';
     return template
         .replaceAll('{{package_name}}', packageName)
         .replaceAll('{{assets_gen_import}}', assetsGenImport)
+        .replaceAll('{{on_type}}', onType)
+        .replaceAll('{{extension_name}}', resolvedExtensionName)
         .replaceAll('{{package_param}}', packageParam)
         .replaceAll('{{package_arg_default}}', packageArgDefault);
   }

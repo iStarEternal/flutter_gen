@@ -315,6 +315,7 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
     required this.directoryPathEnabled,
     required this.style,
     this.svgExtensionTemplate,
+    this.svgExtensionName,
     this.svgPathClasses = const [],
   }) : super(className: className);
 
@@ -337,6 +338,10 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
   /// emitted without an inline `svg` method; the template supplies it instead.
   @JsonKey(name: 'svg_extension_template')
   final String? svgExtensionTemplate;
+
+  /// Generated extension name for [svgExtensionTemplate] (default `[SvgGenImage]X`).
+  @JsonKey(name: 'svg_extension_name')
+  final String? svgExtensionName;
 
   /// Whether SVG `svg(...)` should be generated via [svgExtensionTemplate].
   bool get hasSvgExtensionTemplate =>
@@ -374,6 +379,8 @@ class FlutterGenSvgPathClass {
     required this.path,
     required this.className,
     this.template,
+    this.svgExtensionTemplate,
+    this.extensionName,
   });
 
   factory FlutterGenSvgPathClass.fromJson(Map json) =>
@@ -392,6 +399,15 @@ class FlutterGenSvgPathClass {
   @JsonKey(name: 'template')
   final String? template;
 
+  /// Optional extension template for [className] (e.g. `extension on V3SvgGenImage`).
+  /// Coexists with the global [FlutterGenAssetsOutputs.svgExtensionTemplate].
+  @JsonKey(name: 'svg_extension_template')
+  final String? svgExtensionTemplate;
+
+  /// Generated extension name for [svgExtensionTemplate] (default `[className]X`).
+  @JsonKey(name: 'extension_name')
+  final String? extensionName;
+
   /// Slash-normalized [path] without a trailing slash (except root).
   String get normalizedPath {
     var value = path.replaceAll('\\', '/');
@@ -403,6 +419,10 @@ class FlutterGenSvgPathClass {
 
   /// Whether [template] is non-empty.
   bool get hasTemplate => template != null && template!.trim().isNotEmpty;
+
+  /// Whether [svgExtensionTemplate] is non-empty.
+  bool get hasSvgExtensionTemplate =>
+      svgExtensionTemplate != null && svgExtensionTemplate!.trim().isNotEmpty;
 }
 
 @JsonSerializable()

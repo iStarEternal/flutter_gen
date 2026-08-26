@@ -4,7 +4,9 @@
 
 - 基线 tag：`v5.15.0`
 - 工作分支：`feat/svg-ext-template`
-- 消费方：`lp_modules/lp_assets`（`svg_extension_template`）
+- 消费方：`lp_modules/lp_assets`
+  - 全局 `svg_extension_template` + 可选 `svg_extension_name` → `assets.svg_ext.gen.dart`
+  - `svg_path_classes[]`：`svg_extension_template` + 可选 `extension_name` → `assets.<class_snake>_ext.gen.dart`
 
 ## 父仓用法
 

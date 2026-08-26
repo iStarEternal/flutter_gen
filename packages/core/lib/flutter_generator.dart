@@ -68,35 +68,74 @@ class FlutterGenerator {
       writer(generated, assetsPath);
       log.info('Generated: $assetsPath');
 
-      final svgTemplatePath =
-          flutterGen.assets.outputs.svgExtensionTemplate?.trim();
-      if (flutterGen.integrations.flutterSvg &&
-          svgTemplatePath != null &&
-          svgTemplatePath.isNotEmpty) {
-        final templateFile = File(
-          normalize(join(pubspecFile.parent.path, svgTemplatePath)),
-        );
-        if (!templateFile.existsSync()) {
-          throw StateError(
-            'flutter_gen.assets.outputs.svg_extension_template not found: '
-            '${templateFile.path}',
-          );
-        }
+      if (flutterGen.integrations.flutterSvg) {
         final integration = SvgIntegration(
           assetsConfig.packageParameterLiteral,
           omitSvgMethod: true,
         );
-        final rendered = integration.renderExtensionTemplate(
-          templateFile.readAsStringSync(),
-          assetsGenImport: "import '$assetsName';",
-        );
-        final buffer = StringBuffer()
-          ..writeln(header)
-          ..writeln(ignore)
-          ..writeln(rendered);
-        final svgExtPath = normalize(join(absoluteOutput.path, svgExtName));
-        writer(formatter.format(buffer.toString()), svgExtPath);
-        log.info('Generated: $svgExtPath');
+        final assetsGenImport = "import '$assetsName';";
+
+        // Global extension on SvgGenImage.
+        final svgTemplatePath =
+            flutterGen.assets.outputs.svgExtensionTemplate?.trim();
+        if (svgTemplatePath != null && svgTemplatePath.isNotEmpty) {
+          final templateFile = File(
+            normalize(join(pubspecFile.parent.path, svgTemplatePath)),
+          );
+          if (!templateFile.existsSync()) {
+            throw StateError(
+              'flutter_gen.assets.outputs.svg_extension_template not found: '
+              '${templateFile.path}',
+            );
+          }
+          final rendered = integration.renderExtensionTemplate(
+            templateFile.readAsStringSync(),
+            assetsGenImport: assetsGenImport,
+            extensionName:
+                flutterGen.assets.outputs.svgExtensionName?.trim(),
+          );
+          final buffer = StringBuffer()
+            ..writeln(header)
+            ..writeln(ignore)
+            ..writeln(rendered);
+          final svgExtPath = normalize(join(absoluteOutput.path, svgExtName));
+          writer(formatter.format(buffer.toString()), svgExtPath);
+          log.info('Generated: $svgExtPath');
+        }
+
+        // Per-path-class extensions (coexist with the global one).
+        for (final pathClass in flutterGen.assets.outputs.svgPathClasses) {
+          if (!pathClass.hasSvgExtensionTemplate) {
+            continue;
+          }
+          final pathTemplate = pathClass.svgExtensionTemplate!.trim();
+          final templateFile = File(
+            normalize(join(pubspecFile.parent.path, pathTemplate)),
+          );
+          if (!templateFile.existsSync()) {
+            throw StateError(
+              'flutter_gen.assets.outputs.svg_path_classes'
+              '[${pathClass.className}].svg_extension_template not found: '
+              '${templateFile.path}',
+            );
+          }
+          final rendered = integration.renderExtensionTemplate(
+            templateFile.readAsStringSync(),
+            assetsGenImport: assetsGenImport,
+            onType: pathClass.className,
+            extensionName: pathClass.extensionName?.trim(),
+          );
+          final buffer = StringBuffer()
+            ..writeln(header)
+            ..writeln(ignore)
+            ..writeln(rendered);
+          final pathExtName =
+              'assets.${_camelToSnake(pathClass.className)}_ext.gen.dart';
+          final pathExtPath =
+              normalize(join(absoluteOutput.path, pathExtName));
+          writer(formatter.format(buffer.toString()), pathExtPath);
+          log.info('Generated: $pathExtPath');
+        }
       }
     }
 
@@ -123,4 +162,15 @@ class FlutterGenerator {
 
     log.info('Finished generating.');
   }
+}
+
+/// `V3SvgGenImage` → `v3_svg_gen_image`.
+String _camelToSnake(String name) {
+  final withUnderscores = name.replaceAllMapped(
+    RegExp(r'[A-Z]'),
+    (match) => '_${match.group(0)!.toLowerCase()}',
+  );
+  return withUnderscores.startsWith('_')
+      ? withUnderscores.substring(1)
+      : withUnderscores;
 }
