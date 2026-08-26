@@ -314,6 +314,7 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
     required this.packageParameterEnabled,
     required this.directoryPathEnabled,
     required this.style,
+    this.svgExtensionTemplate,
   }) : super(className: className);
 
   factory FlutterGenElementAssetsOutputs.fromJson(Map json) =>
@@ -327,6 +328,18 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
 
   @JsonKey(name: 'style', required: true)
   final FlutterGenElementAssetsOutputsStyle style;
+
+  /// Relative path (from the consuming package root) to a Dart template that
+  /// generates `assets.svg_ext.gen.dart` as an [SvgGenImage] extension.
+  ///
+  /// When set and `integrations.flutter_svg` is enabled, [SvgGenImage] is
+  /// emitted without an inline `svg` method; the template supplies it instead.
+  @JsonKey(name: 'svg_extension_template')
+  final String? svgExtensionTemplate;
+
+  /// Whether SVG `svg(...)` should be generated via [svgExtensionTemplate].
+  bool get hasSvgExtensionTemplate =>
+      svgExtensionTemplate != null && svgExtensionTemplate!.trim().isNotEmpty;
 }
 
 @JsonSerializable()

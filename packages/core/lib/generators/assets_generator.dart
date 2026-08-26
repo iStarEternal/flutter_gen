@@ -89,6 +89,7 @@ Future<String> generateAssets(
       SvgIntegration(
         config.packageParameterLiteral,
         parseMetadata: config.flutterGen.parseMetadata,
+        omitSvgMethod: config.flutterGen.assets.outputs.hasSvgExtensionTemplate,
       ),
     if (config.flutterGen.integrations.rive)
       RiveIntegration(

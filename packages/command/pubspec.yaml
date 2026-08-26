@@ -13,7 +13,8 @@ executables:
   fluttergen: flutter_gen_command
 
 dependencies:
-  flutter_gen_core: 5.15.0
+  flutter_gen_core:
+    path: ../core
 
   args: ^2.0.0
   glob: ^2.1.3

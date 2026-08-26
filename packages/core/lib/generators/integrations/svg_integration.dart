@@ -8,46 +8,33 @@ class SvgIntegration extends Integration {
   SvgIntegration(
     String packageName, {
     super.parseMetadata,
+    this.omitSvgMethod = false,
   }) : super(packageName);
+
+  /// When true, [classOutput] omits `svg(...)`; emit it via [renderExtensionTemplate].
+  final bool omitSvgMethod;
 
   String get packageExpression => isPackage ? ' = package' : '';
 
   @override
-  List<Import> get requiredImports => const [
-        Import('package:flutter/widgets.dart'),
-        Import('package:flutter/services.dart'),
-        Import('package:flutter_svg/flutter_svg.dart', alias: '_svg'),
-        Import('package:vector_graphics/vector_graphics.dart', alias: '_vg'),
+  List<Import> get requiredImports => [
+        const Import('package:flutter/widgets.dart'),
+        if (!omitSvgMethod) ...const [
+          Import('package:flutter/services.dart'),
+          Import('package:flutter_svg/flutter_svg.dart', alias: '_svg'),
+          Import('package:vector_graphics/vector_graphics.dart', alias: '_vg'),
+        ],
       ];
 
   @override
   String get classOutput => _classDefinition;
 
-  String get _classDefinition => '''class SvgGenImage {
-  const SvgGenImage(
-    this._assetName, {
-    this.size,
-    this.flavors = const {},
-  }) : _isVecFormat = false;
-
-  const SvgGenImage.vec(
-    this._assetName, {
-    this.size,
-    this.flavors = const {},
-  }) : _isVecFormat = true;
-
-  final String _assetName;
-  final Size? size;
-  final Set<String> flavors;
-  final bool _isVecFormat;
-
-${isPackage ? "\n  static const String package = '$packageName';" : ''}
-
+  String get _svgMethod => '''
   _svg.SvgPicture svg({
     Key? key,
     bool matchTextDirection = false,
     AssetBundle? bundle,
-    ${isPackage ? '$deprecationMessagePackage\n' : ''}String? package$packageExpression,
+    ${isPackage ? '$deprecationMessagePackage\n    ' : ''}String? package$packageExpression,
     double? width,
     double? height,
     BoxFit fit = BoxFit.contain,
@@ -97,7 +84,30 @@ ${isPackage ? "\n  static const String package = '$packageName';" : ''}
       cacheColorFilter: cacheColorFilter,
     );
   }
+''';
 
+  String get _classDefinition => '''class SvgGenImage {
+  const SvgGenImage(
+    this._assetName, {
+    this.size,
+    this.flavors = const {},
+  }) : _isVecFormat = false;
+
+  const SvgGenImage.vec(
+    this._assetName, {
+    this.size,
+    this.flavors = const {},
+  }) : _isVecFormat = true;
+
+  final String _assetName;
+  final Size? size;
+  final Set<String> flavors;
+  final bool _isVecFormat;
+
+  /// Whether this asset uses the compiled vector (`.vec`) format.
+  bool get isVecFormat => _isVecFormat;
+
+${isPackage ? "\n  static const String package = '$packageName';" : ''}${omitSvgMethod ? '' : _svgMethod}
   String get path => _assetName;
 
   String get keyName => ${isPackage ? '\'packages/$packageName/\$_assetName\'' : '_assetName'};
@@ -107,6 +117,31 @@ ${isPackage ? "\n  static const String package = '$packageName';" : ''}
   String get className => 'SvgGenImage';
 
   static const vectorCompileTransformer = 'vector_graphics_compiler';
+
+  /// Renders a user-supplied template for `assets.svg_ext.gen.dart`.
+  ///
+  /// Placeholders:
+  /// - `{{package_name}}`
+  /// - `{{assets_gen_import}}` — e.g. `import 'assets.gen.dart';`
+  /// - `{{package_param}}` — package parameter declaration (may be multi-line)
+  /// - `{{package_arg_default}}` — ` = SvgGenImage.package` or empty
+  String renderExtensionTemplate(
+    String template, {
+    required String assetsGenImport,
+  }) {
+    // Extension methods cannot unqualified-reference statics of the on-type.
+    final packageArgDefault =
+        isPackage ? ' = SvgGenImage.package' : '';
+    final packageParam = isPackage
+        ? '''$deprecationMessagePackage
+    String? package$packageArgDefault,'''
+        : 'String? package,';
+    return template
+        .replaceAll('{{package_name}}', packageName)
+        .replaceAll('{{assets_gen_import}}', assetsGenImport)
+        .replaceAll('{{package_param}}', packageParam)
+        .replaceAll('{{package_arg_default}}', packageArgDefault);
+  }
 
   @override
   String classInstantiate(AssetType asset) {

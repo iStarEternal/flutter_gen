@@ -3,6 +3,8 @@ import 'dart:io' show Directory, File;
 import 'package:flutter_gen_core/generators/assets_generator.dart';
 import 'package:flutter_gen_core/generators/colors_generator.dart';
 import 'package:flutter_gen_core/generators/fonts_generator.dart';
+import 'package:flutter_gen_core/generators/generator_helper.dart';
+import 'package:flutter_gen_core/generators/integrations/svg_integration.dart';
 import 'package:flutter_gen_core/settings/config.dart';
 import 'package:flutter_gen_core/utils/file.dart';
 import 'package:flutter_gen_core/utils/formatter.dart';
@@ -14,6 +16,7 @@ class FlutterGenerator {
     this.pubspecFile, {
     this.buildFile,
     this.assetsName = 'assets.gen.dart',
+    this.svgExtName = 'assets.svg_ext.gen.dart',
     this.colorsName = 'colors.gen.dart',
     this.fontsName = 'fonts.gen.dart',
     this.overrideOutputPath,
@@ -22,6 +25,7 @@ class FlutterGenerator {
   final File pubspecFile;
   final File? buildFile;
   final String assetsName;
+  final String svgExtName;
   final String colorsName;
   final String fontsName;
   final String? overrideOutputPath;
@@ -55,13 +59,45 @@ class FlutterGenerator {
     }
 
     if (flutterGen.assets.enabled && flutter.assets.isNotEmpty) {
+      final assetsConfig = AssetsGenConfig.fromConfig(pubspecFile, config);
       final generated = await generateAssets(
-        AssetsGenConfig.fromConfig(pubspecFile, config),
+        assetsConfig,
         formatter,
       );
       final assetsPath = normalize(join(absoluteOutput.path, assetsName));
       writer(generated, assetsPath);
       log.info('Generated: $assetsPath');
+
+      final svgTemplatePath =
+          flutterGen.assets.outputs.svgExtensionTemplate?.trim();
+      if (flutterGen.integrations.flutterSvg &&
+          svgTemplatePath != null &&
+          svgTemplatePath.isNotEmpty) {
+        final templateFile = File(
+          normalize(join(pubspecFile.parent.path, svgTemplatePath)),
+        );
+        if (!templateFile.existsSync()) {
+          throw StateError(
+            'flutter_gen.assets.outputs.svg_extension_template not found: '
+            '${templateFile.path}',
+          );
+        }
+        final integration = SvgIntegration(
+          assetsConfig.packageParameterLiteral,
+          omitSvgMethod: true,
+        );
+        final rendered = integration.renderExtensionTemplate(
+          templateFile.readAsStringSync(),
+          assetsGenImport: "import '$assetsName';",
+        );
+        final buffer = StringBuffer()
+          ..writeln(header)
+          ..writeln(ignore)
+          ..writeln(rendered);
+        final svgExtPath = normalize(join(absoluteOutput.path, svgExtName));
+        writer(formatter.format(buffer.toString()), svgExtPath);
+        log.info('Generated: $svgExtPath');
+      }
     }
 
     if (flutterGen.colors.enabled && flutterGen.colors.inputs.isNotEmpty) {

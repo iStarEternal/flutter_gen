@@ -264,7 +264,8 @@ FlutterGenElementAssetsOutputs _$FlutterGenElementAssetsOutputsFromJson(
             'class_name',
             'package_parameter_enabled',
             'directory_path_enabled',
-            'style'
+            'style',
+            'svg_extension_template',
           ],
           requiredKeys: const ['class_name', 'style'],
         );
@@ -276,13 +277,16 @@ FlutterGenElementAssetsOutputs _$FlutterGenElementAssetsOutputsFromJson(
               'directory_path_enabled', (v) => v as bool? ?? false),
           style: $checkedConvert('style',
               (v) => FlutterGenElementAssetsOutputsStyle.fromJson(v as String)),
+          svgExtensionTemplate:
+              $checkedConvert('svg_extension_template', (v) => v as String?),
         );
         return val;
       },
       fieldKeyMap: const {
         'className': 'class_name',
         'packageParameterEnabled': 'package_parameter_enabled',
-        'directoryPathEnabled': 'directory_path_enabled'
+        'directoryPathEnabled': 'directory_path_enabled',
+        'svgExtensionTemplate': 'svg_extension_template',
       },
     );
 

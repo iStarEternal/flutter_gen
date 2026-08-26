@@ -29,6 +29,9 @@ flutter_gen:
       # - dot-delimiter
       style: dot-delimiter # Optional
       class_name: Assets
+      # Optional. Relative to the package root. When set with integrations.flutter_svg,
+      # SvgGenImage omits inline svg(); FlutterGen emits assets.svg_ext.gen.dart from this template.
+      # svg_extension_template: tool/flutter_gen_templates/svg_gen_image_ext.dart.template
     exclude: []
 
   fonts:
