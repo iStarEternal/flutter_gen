@@ -162,6 +162,11 @@ Future<String> generateAssets(
   for (final integration in integrations.where((e) => e.isEnabled)) {
     imports.addAll(integration.requiredImports);
     classesBuffer.writeln(integration.classOutput);
+    if (integration is SvgIntegration) {
+      classesBuffer.write(
+        _generateSvgPathClasses(config, integration),
+      );
+    }
   }
 
   final importsBuffer = StringBuffer();
@@ -176,6 +181,46 @@ Future<String> generateAssets(
   buffer.writeln(importsBuffer.toString());
   buffer.writeln(classesBuffer.toString());
   return formatter.format(buffer.toString());
+}
+
+/// Emits custom [SvgGenImage] subclasses from [svg_path_classes] config.
+String _generateSvgPathClasses(
+  AssetsGenConfig config,
+  SvgIntegration integration,
+) {
+  final pathClasses = config.flutterGen.assets.outputs.svgPathClasses;
+  if (pathClasses.isEmpty) {
+    return '';
+  }
+  final buffer = StringBuffer();
+  final seen = <String>{};
+  for (final pathClass in pathClasses) {
+    if (!seen.add(pathClass.className)) {
+      continue;
+    }
+    if (pathClass.hasTemplate) {
+      final templateFile = File(
+        join(config.rootPath, pathClass.template!.trim()),
+      );
+      if (!templateFile.existsSync()) {
+        throw StateError(
+          'flutter_gen.assets.outputs.svg_path_classes.template not found: '
+          '${templateFile.path}',
+        );
+      }
+      buffer.writeln(
+        integration.renderPathClassTemplate(
+          templateFile.readAsStringSync(),
+          className: pathClass.className,
+        ),
+      );
+    } else {
+      buffer.writeln(
+        SvgIntegration.defaultPathClassOutput(pathClass.className),
+      );
+    }
+  }
+  return buffer.toString();
 }
 
 String? generatePackageNameForConfig(AssetsGenConfig config) {
@@ -357,11 +402,24 @@ Future<_Statement?> _createAssetTypeStatement(
       );
     } else {
       integration.isEnabled = true;
+      var typeName = integration.className;
+      var value = integration.classInstantiate(assetType);
+      if (integration is SvgIntegration) {
+        final pathClass = config.flutterGen.assets.outputs
+            .matchSvgPathClass(assetType.posixStylePath);
+        if (pathClass != null) {
+          typeName = pathClass.className;
+          value = integration.classInstantiate(
+            assetType,
+            typeName: pathClass.className,
+          );
+        }
+      }
       return _Statement(
-        type: integration.className,
+        type: typeName,
         filePath: assetType.posixStylePath,
         name: assetType.name,
-        value: integration.classInstantiate(assetType),
+        value: value,
         isConstConstructor: integration.isConstConstructor,
         isDirectory: false,
         needDartDoc: true,

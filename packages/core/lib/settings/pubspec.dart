@@ -315,6 +315,7 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
     required this.directoryPathEnabled,
     required this.style,
     this.svgExtensionTemplate,
+    this.svgPathClasses = const [],
   }) : super(className: className);
 
   factory FlutterGenElementAssetsOutputs.fromJson(Map json) =>
@@ -340,6 +341,68 @@ class FlutterGenElementAssetsOutputs extends FlutterGenElementOutputs {
   /// Whether SVG `svg(...)` should be generated via [svgExtensionTemplate].
   bool get hasSvgExtensionTemplate =>
       svgExtensionTemplate != null && svgExtensionTemplate!.trim().isNotEmpty;
+
+  /// Per-folder SVG type overrides: assets under [FlutterGenSvgPathClass.path]
+  /// instantiate as [FlutterGenSvgPathClass.className] (typically a subclass of
+  /// [SvgGenImage]), optionally defined by [FlutterGenSvgPathClass.template].
+  @JsonKey(name: 'svg_path_classes', defaultValue: [])
+  final List<FlutterGenSvgPathClass> svgPathClasses;
+
+  /// Longest-prefix match for [posixAssetPath] against [svgPathClasses].
+  FlutterGenSvgPathClass? matchSvgPathClass(String posixAssetPath) {
+    final normalized = posixAssetPath.replaceAll('\\', '/');
+    FlutterGenSvgPathClass? best;
+    var bestLength = -1;
+    for (final entry in svgPathClasses) {
+      final prefix = entry.normalizedPath;
+      if (normalized == prefix ||
+          normalized.startsWith(prefix.endsWith('/') ? prefix : '$prefix/')) {
+        if (prefix.length > bestLength) {
+          best = entry;
+          bestLength = prefix.length;
+        }
+      }
+    }
+    return best;
+  }
+}
+
+/// Maps an asset directory prefix to a custom [SvgGenImage] subclass.
+@JsonSerializable()
+class FlutterGenSvgPathClass {
+  const FlutterGenSvgPathClass({
+    required this.path,
+    required this.className,
+    this.template,
+  });
+
+  factory FlutterGenSvgPathClass.fromJson(Map json) =>
+      _$FlutterGenSvgPathClassFromJson(json);
+
+  /// Asset path prefix, e.g. `assets/v3_svg/` or `assets/v3_svg`.
+  @JsonKey(name: 'path', required: true)
+  final String path;
+
+  /// Generated Dart class name, e.g. `V3SvgGenImage`.
+  @JsonKey(name: 'class_name', required: true)
+  final String className;
+
+  /// Optional template (relative to package root) that defines [className].
+  /// When omitted, a minimal `extends SvgGenImage` subclass is emitted.
+  @JsonKey(name: 'template')
+  final String? template;
+
+  /// Slash-normalized [path] without a trailing slash (except root).
+  String get normalizedPath {
+    var value = path.replaceAll('\\', '/');
+    while (value.endsWith('/') && value.length > 1) {
+      value = value.substring(0, value.length - 1);
+    }
+    return value;
+  }
+
+  /// Whether [template] is non-empty.
+  bool get hasTemplate => template != null && template!.trim().isNotEmpty;
 }
 
 @JsonSerializable()

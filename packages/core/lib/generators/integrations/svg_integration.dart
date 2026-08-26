@@ -144,10 +144,10 @@ ${isPackage ? "\n  static const String package = '$packageName';" : ''}${omitSvg
   }
 
   @override
-  String classInstantiate(AssetType asset) {
+  String classInstantiate(AssetType asset, {String? typeName}) {
     // Query extra information about the SVG.
     final info = parseMetadata ? _getMetadata(asset) : null;
-    final buffer = StringBuffer(className);
+    final buffer = StringBuffer(typeName ?? className);
     if (asset.extension == '.vec' ||
         asset.transformers.contains(vectorCompileTransformer)) {
       buffer.write('.vec');
@@ -166,6 +166,33 @@ ${isPackage ? "\n  static const String package = '$packageName';" : ''}${omitSvg
     }
     buffer.write(')');
     return buffer.toString();
+  }
+
+  /// Minimal subclass body when [FlutterGenSvgPathClass.template] is omitted.
+  static String defaultPathClassOutput(String className) => '''
+class $className extends SvgGenImage {
+  const $className(
+    String assetName, {
+    Size? size,
+    Set<String> flavors = const {},
+  }) : super(assetName, size: size, flavors: flavors);
+
+  const $className.vec(
+    String assetName, {
+    Size? size,
+    Set<String> flavors = const {},
+  }) : super.vec(assetName, size: size, flavors: flavors);
+}
+''';
+
+  /// Renders a path-class template (`{{class_name}}`, `{{package_name}}`).
+  String renderPathClassTemplate(
+    String template, {
+    required String className,
+  }) {
+    return template
+        .replaceAll('{{class_name}}', className)
+        .replaceAll('{{package_name}}', packageName);
   }
 
   ImageMetadata? _getMetadata(AssetType asset) {

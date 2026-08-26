@@ -266,6 +266,7 @@ FlutterGenElementAssetsOutputs _$FlutterGenElementAssetsOutputsFromJson(
             'directory_path_enabled',
             'style',
             'svg_extension_template',
+            'svg_path_classes',
           ],
           requiredKeys: const ['class_name', 'style'],
         );
@@ -279,6 +280,14 @@ FlutterGenElementAssetsOutputs _$FlutterGenElementAssetsOutputsFromJson(
               (v) => FlutterGenElementAssetsOutputsStyle.fromJson(v as String)),
           svgExtensionTemplate:
               $checkedConvert('svg_extension_template', (v) => v as String?),
+          svgPathClasses: $checkedConvert(
+              'svg_path_classes',
+              (v) =>
+                  (v as List<dynamic>?)
+                      ?.map((e) =>
+                          FlutterGenSvgPathClass.fromJson(e as Map))
+                      .toList() ??
+                  const []),
         );
         return val;
       },
@@ -287,7 +296,28 @@ FlutterGenElementAssetsOutputs _$FlutterGenElementAssetsOutputsFromJson(
         'packageParameterEnabled': 'package_parameter_enabled',
         'directoryPathEnabled': 'directory_path_enabled',
         'svgExtensionTemplate': 'svg_extension_template',
+        'svgPathClasses': 'svg_path_classes',
       },
+    );
+
+FlutterGenSvgPathClass _$FlutterGenSvgPathClassFromJson(Map json) =>
+    $checkedCreate(
+      'FlutterGenSvgPathClass',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['path', 'class_name', 'template'],
+          requiredKeys: const ['path', 'class_name'],
+        );
+        final val = FlutterGenSvgPathClass(
+          path: $checkedConvert('path', (v) => v as String),
+          className: $checkedConvert('class_name', (v) => v as String),
+          template: $checkedConvert('template', (v) => v as String?),
+        );
+        return val;
+      },
+      fieldKeyMap: const {'className': 'class_name'},
     );
 
 FlutterGenElementFontsOutputs _$FlutterGenElementFontsOutputsFromJson(
